@@ -1,100 +1,88 @@
-import { defineStore } from "pinia";
-import {
-  BaseBeverageType,
-  CreamerType,
-  SyrupType,
-  BeverageType,
-} from "../types/college.ts";
-import tempretures from "../data/tempretures.json";
-import db from "../firebase.ts";
+import { defineStore } from 'pinia'
+import { ref, computed } from 'vue'
 import {
   collection,
   getDocs,
-  setDoc,
-  doc,
-} from "firebase/firestore";
+  addDoc,
+} from 'firebase/firestore'
+import { db } from '../firebase'
 
-export const useBeverageStore = defineStore("BeverageStore", {
-  state: () => ({
-    temps: tempretures,
-    currentTemp: tempretures[0],
-    bases: [] as BaseBeverageType[],
-    currentBase: null as BaseBeverageType | null,
-    syrups: [] as SyrupType[],
-    currentSyrup: null as SyrupType | null,
-    creamers: [] as CreamerType[],
-    currentCreamer: null as CreamerType | null,
-    beverages: [] as BeverageType[],
-    currentBeverage: null as BeverageType | null,
-    currentName: "",
-  }),
+interface Review {
+  collegeName: string
+  rating: number
+  comment: string
+  userName: string
+}
 
-  actions: {
-    async init() {
-      try {
-        const baseSnap = await getDocs(collection(db, "bases"));
-        const syrupSnap = await getDocs(collection(db, "syrups"));
-        const creamerSnap = await getDocs(collection(db, "creamers"));
-  
-        this.bases = baseSnap.docs.map((doc) => doc.data() as BaseBeverageType);
-        this.syrups = syrupSnap.docs.map((doc) => doc.data() as SyrupType);
-        this.creamers = creamerSnap.docs.map((doc) => doc.data() as CreamerType);
-  
-        this.currentBase = this.bases[0] ?? null;
-        this.currentSyrup = this.syrups[0] ?? null;
-        this.currentCreamer = this.creamers[0] ?? null;
+interface College {
+  name: string
+  averageRating?: number
+  reviewCount?: number
+  imageUrl?: string
+}
 
-        console.log("[Store] Bases loaded:", this.bases);
-        console.log("[Store] Syrups loaded:", this.syrups);
-        console.log("[Store] Creamers loaded:", this.creamers);
+export const useCollegeStore = defineStore('College', () => {
+  const reviews = ref<Review[]>([])
+  const colleges = ref<College[]>([])
+  const isLoading = ref(false)
+  const error = ref<string | null>(null)
 
-      } catch (error) {
-        console.error("Error initializing beverage store:", error);
-      }
-    },
-      
-    async makeBeverage() {
-      try {
-        if (!this.currentBase || !this.currentSyrup || !this.currentCreamer || !this.currentName) {
-          console.warn("Missing data for beverage creation.");
-          return;
-        }
-    
-        const id = crypto.randomUUID(); // I kept getting an ID error, adding this to fix it
-    
-        const beverage: BeverageType = {
-          id,
-          name: this.currentName,
-          temp: this.currentTemp,
-          base: this.currentBase,
-          syrup: this.currentSyrup,
-          creamer: this.currentCreamer,
-        };
-    
-        console.log("[makeBeverage] Saving beverage:", beverage);
-    
-        await setDoc(doc(db, "beverages", id), beverage);
-        this.beverages.push(beverage);
-    
-        console.log("[makeBeverage] Beverage saved successfully.");
-      } catch (error) {
-        console.error("Failed to save beverage:", error);
-      }
-    },
-
-    showBeverage(id: string) {
-      const selected = this.beverages.find((bev) => bev.id === id);
-      if (selected) {
-        this.currentBeverage = selected;
-        this.currentName = selected.name;
-        this.currentTemp = selected.temp;
-        this.currentBase = selected.base;
-        this.currentSyrup = selected.syrup;
-        this.currentCreamer = selected.creamer;
-      } else {
-        console.warn("Beverage not found");
-      }
+  const fetchReviews = async () => {
+    try {
+      isLoading.value = true
+      const snapshot = await getDocs(collection(db, 'Ratings'))
+      reviews.value = snapshot.docs.map(doc => doc.data() as Review)
+    } catch (err) {
+      error.value = 'Failed to fetch reviews'
+      console.error(err)
+    } finally {
+      isLoading.value = false
     }
   }
-  
-});
+
+  const computeColleges = () => {
+    const grouped: { [name: string]: Review[] } = {}
+    for (const review of reviews.value) {
+      if (!grouped[review.collegeName]) grouped[review.collegeName] = []
+      grouped[review.collegeName].push(review)
+    }
+
+    colleges.value = Object.entries(grouped).map(([name, revs]) => {
+      const totalRating = revs.reduce((sum, r) => sum + r.rating, 0)
+      return {
+        name,
+        averageRating: parseFloat((totalRating / revs.length).toFixed(1)),
+        reviewCount: revs.length
+      }
+    })
+  }
+
+  const getCollegeByName = (name: string) =>
+    computed(() => colleges.value.find(college => college.name === name))
+
+  const getReviewsForCollege = (name: string) =>
+    computed(() => reviews.value.filter(r => r.collegeName === name))
+
+  const addReview = async (review: Review) => {
+    try {
+      await addDoc(collection(db, 'Ratings'), review)
+      reviews.value.push(review)
+      computeColleges()
+    } catch (err) {
+      error.value = 'Failed to add review'
+      console.error(err)
+    }
+  }
+
+  return {
+    reviews,
+    colleges,
+    isLoading,
+    error,
+    fetchReviews,
+    computeColleges,
+    getCollegeByName,
+    getReviewsForCollege,
+    addReview
+  }
+})

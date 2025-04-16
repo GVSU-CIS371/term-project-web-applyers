@@ -3,6 +3,8 @@ import HomeView from '../views/HomeView.vue'  // Changed from Home.vue
 import CollegeView from '../views/CollegeView.vue'  // Changed from Colleges.vue
 import CollegeDetail from '../views/CollegeDetail.vue'
 import AddReview from '../views/AddReview.vue'
+import LoginView from '../views/LoginView.vue'
+
 
 const routes = [
   {
@@ -11,9 +13,14 @@ const routes = [
     component: HomeView  // Matches HomeView.vue
   },
   {
-    path: '/colleges',
-    name: 'colleges',
+    path: '/Colleges',
+    name: 'Colleges',
     component: CollegeView  // Matches CollegeView.vue
+  },
+  {
+    path: '/Login',
+    name: 'Logins',
+    component: LoginView  // Matches CollegeView.vue
   },
   {
     path: '/college/:collegeId',
