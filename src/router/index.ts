@@ -4,7 +4,7 @@ import CollegeView from '../views/CollegeView.vue'  // Changed from Colleges.vue
 import CollegeDetail from '../views/CollegeDetail.vue'
 import AddReview from '../views/AddReview.vue'
 import LoginView from '../views/LoginView.vue'
-
+import SignupView from '../views/SignupView.vue';
 
 const routes = [
   {
@@ -34,7 +34,10 @@ const routes = [
     component: AddReview,
     props: true,
     meta: { requiresAuth: true }
-  }
+  },
+  { 
+    path: '/signup', name: 'Signup', component: SignupView 
+  },
 ]
 
 const router = createRouter({

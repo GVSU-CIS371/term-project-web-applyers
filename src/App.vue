@@ -6,6 +6,7 @@
       <v-btn to="/" text>Home</v-btn>
       <v-btn to="/colleges" text>Colleges</v-btn>
       <v-btn v-if="!user" to="/login" text>Login</v-btn>
+      <v-btn v-if="!user" to="/signup" text>Sign Up</v-btn> <!-- Added Sign Up button -->
       <v-btn v-else @click="signOut" text>Logout</v-btn>
     </v-app-bar>
 
@@ -23,6 +24,9 @@
 import { auth } from './firebase'
 import { signOut } from 'firebase/auth'
 
+///import { populateColleges } from './scripts/populateColleges';  These add calleges to firestore
+///populateColleges();
+
 export default {
   name: 'App',
   data() {
@@ -33,6 +37,7 @@ export default {
   created() {
     auth.onAuthStateChanged(user => {
       this.user = user
+      console.log('User state changed:', user);
     })
   },
   methods: {
