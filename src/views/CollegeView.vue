@@ -79,7 +79,7 @@ export default {
   },
   async created() {
     await this.fetchColleges()
-    this.user = auth.currentUser
+    //this.user = auth.currentUser
   },
   methods: {
     async fetchColleges() {
