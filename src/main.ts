@@ -1,9 +1,21 @@
-import { createApp } from "vue";
-import "./styles/mug.scss";
-import { createPinia } from "pinia";
-import piniaPluginPersistedState from "pinia-plugin-persistedstate";
-import App from "./App.vue";
-const pinia = createPinia();
-pinia.use(piniaPluginPersistedState);
+import { createApp } from 'vue'
+import App from './App.vue'
+import router from './router/index.ts'
+import vuetify from './plugins/vuetify' // Vuetify plugin
+import { auth } from './firebase' // Firebase auth
+import { onAuthStateChanged } from 'firebase/auth'
 
-createApp(App).use(pinia).mount("#app");
+// Create Vue app
+const app = createApp(App)
+
+// Initialize Firebase auth state listener
+let isAuthInitialized = false
+
+onAuthStateChanged(auth, () => {
+  if (!isAuthInitialized) {
+    isAuthInitialized = true
+    app.use(router)
+      .use(vuetify)
+      .mount('#app')
+  }
+})

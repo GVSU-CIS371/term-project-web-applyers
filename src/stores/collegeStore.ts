@@ -4,7 +4,7 @@ import {
   CreamerType,
   SyrupType,
   BeverageType,
-} from "../types/beverage";
+} from "../types/college.ts";
 import tempretures from "../data/tempretures.json";
 import db from "../firebase.ts";
 import {
