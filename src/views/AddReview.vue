@@ -5,25 +5,31 @@
     <v-card-text>
       <v-form ref="form" @submit.prevent="submitReview">
         <v-row>
+          <!-- Subject Dropdown -->
+          <v-col cols="12">
+            <v-select
+              v-model="review.subject"
+              :items="subjects"
+              item-text="name"
+              item-value="name"
+              label="Select a Subject"
+              required
+            ></v-select>
+          </v-col>
+
+          <!-- Rating Input -->
           <v-col cols="12">
             <v-rating
               v-model="review.rating"
               color="amber"
               size="36"
-              half-increments
               hover
+              :max="10"
               required
             ></v-rating>
           </v-col>
 
-          <v-col cols="12">
-            <v-text-field
-              v-model="review.course"
-              label="Course/Degree"
-              required
-            ></v-text-field>
-          </v-col>
-
+          <!-- Text Review -->
           <v-col cols="12">
             <v-textarea
               v-model="review.comment"
@@ -33,6 +39,7 @@
             ></v-textarea>
           </v-col>
 
+          <!-- Anonymous Checkbox -->
           <v-col cols="12">
             <v-checkbox
               v-model="review.anonymous"
@@ -57,10 +64,8 @@ import {
   collection,
   addDoc,
   doc,
-  updateDoc,
-  query,
-  where,
-  getDocs
+  getDocs,
+  updateDoc
 } from 'firebase/firestore';
 
 export default {
@@ -73,9 +78,10 @@ export default {
   },
   data() {
     return {
+      subjects: [], // List of subjects offered by the college
       review: {
+        subject: '', // Selected subject
         rating: 0,
-        course: '',
         comment: '',
         anonymous: false,
         date: new Date(),
@@ -84,14 +90,42 @@ export default {
       }
     };
   },
+  async created() {
+    await this.fetchSubjects();
+  },
   methods: {
-    async submitReview() {
+    async fetchSubjects() {
       try {
-        // Add review to reviews collection
-        const reviewRef = await addDoc(collection(db, 'reviews'), {
-          ...this.review,
-          collegeId: this.collegeId
-        });
+        const subjectsRef = collection(db, `colleges/${this.collegeId}/subjects`);
+        const querySnapshot = await getDocs(subjectsRef);
+        this.subjects = querySnapshot.docs.map(doc => ({
+          name: doc.data().name // Only include the name for display
+        }));
+      } catch (error) {
+        console.error('Error fetching subjects:', error);
+      }
+    },
+    async submitReview() {
+      if (!this.review.subject) {
+        alert('Please select a subject.');
+        return;
+      }
+
+      if (this.review.rating === 0) {
+        alert('Please provide a rating.');
+        return;
+      }
+
+      try {
+        // Add review to the reviews subcollection under the specific college
+        const reviewRef = await addDoc(
+          collection(db, `colleges/${this.collegeId}/reviews`),
+          {
+            ...this.review
+          }
+        );
+
+        console.log('Review added with ID:', reviewRef.id);
 
         // Update college's review count and average rating
         await this.updateCollegeStats();
@@ -102,19 +136,20 @@ export default {
       }
     },
     async updateCollegeStats() {
-      const collegeRef = doc(db, 'colleges', this.collegeId);
-      const reviewsQuery = query(
-        collection(db, 'reviews'),
-        where('collegeId', '==', this.collegeId)
-      );
+      const reviewsRef = collection(db, `colleges/${this.collegeId}/reviews`);
+      const querySnapshot = await getDocs(reviewsRef);
 
-      const querySnapshot = await getDocs(reviewsQuery);
       const reviews = querySnapshot.docs.map(doc => doc.data());
-
       const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
       const averageRating = totalRating / reviews.length;
 
+      const collegeRef = doc(db, 'colleges', this.collegeId);
       await updateDoc(collegeRef, {
+        reviewCount: reviews.length,
+        averageRating: parseFloat(averageRating.toFixed(1))
+      });
+
+      console.log('College stats updated:', {
         reviewCount: reviews.length,
         averageRating: parseFloat(averageRating.toFixed(1))
       });

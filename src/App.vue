@@ -24,7 +24,7 @@
 import { auth } from './firebase'
 import { signOut } from 'firebase/auth'
 
-///import { populateColleges } from './scripts/populateColleges';  These add calleges to firestore
+///import { populateColleges } from './scripts/populateColleges';  ///These add calleges to firestore
 ///populateColleges();
 
 export default {

@@ -24,12 +24,12 @@
 
         <div class="my-4">
           <rating-display :rating="college.averageRating || 0" size="36" />
-          <span class="ml-2">({{ college.reviewCount || 0 }} reviews)</span>
+          <span class="ml-2">({{ reviews.length }} reviews)</span>
         </div>
 
         <v-chip-group>
-          <v-chip v-for="tag in college.tags" :key="tag" color="primary" small>
-            {{ tag }}
+          <v-chip v-for="subject in subjects" :key="subject.name" color="primary" small>
+            {{ subject.name }} ({{ subject.rating }}/10)
           </v-chip>
         </v-chip-group>
 
@@ -76,7 +76,7 @@
 
 <script>
 import { db } from '../firebase';
-import { doc, getDoc, collection, getDocs, query, where } from 'firebase/firestore';
+import { doc, getDoc, collection, getDocs } from 'firebase/firestore';
 import { auth } from '../firebase';
 import RatingDisplay from '../components/RatingDisplay.vue';
 import ReviewCard from '../components/ReviewCard.vue';
@@ -99,6 +99,7 @@ export default {
     return {
       college: null,
       reviews: [],
+      subjects: [],
       showAddReview: false,
       user: null
     };
@@ -106,6 +107,7 @@ export default {
   async created() {
     await this.fetchCollege();
     await this.fetchReviews();
+    await this.fetchSubjects();
 
     // Use onAuthStateChanged to reliably track user state
     auth.onAuthStateChanged(user => {
@@ -127,20 +129,23 @@ export default {
       }
     },
     async fetchReviews() {
-      const q = query(
-        collection(db, 'reviews'),
-        where('collegeId', '==', this.collegeId)
-      );
-
-      const querySnapshot = await getDocs(q);
+      const reviewsRef = collection(db, `colleges/${this.collegeId}/reviews`);
+      const querySnapshot = await getDocs(reviewsRef);
       this.reviews = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+    },
+    async fetchSubjects() {
+      const subjectsRef = collection(db, `colleges/${this.collegeId}/subjects`);
+      const querySnapshot = await getDocs(subjectsRef);
+      this.subjects = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
     },
     handleReviewAdded() {
       this.showAddReview = false;
-      this.fetchCollege(); // Refresh college data to update rating
       this.fetchReviews(); // Refresh reviews list
     }
   }
