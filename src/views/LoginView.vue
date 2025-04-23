@@ -32,7 +32,7 @@
 <script setup>
 import { ref } from 'vue';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../firebase'; // Ensure this is the correct path to your firebase.ts file
+import { auth } from '../firebase'; 
 import { useRouter } from 'vue-router';
 
 const email = ref('');
@@ -45,7 +45,6 @@ const login = async () => {
     const userCredential = await signInWithEmailAndPassword(auth, email.value, password.value);
     console.log('User logged in:', userCredential.user);
 
-    // Redirect to the home page after successful login
     router.push('/');
   } catch (error) {
     console.error('Error logging in:', error);

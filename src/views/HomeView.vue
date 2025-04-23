@@ -20,47 +20,15 @@
         </v-btn>
       </v-col>
 
-      <!-- Display Reviews -->
-      <v-col cols="12" class="mt-5">
-        <h2 class="text-h4 mb-3">Latest Reviews</h2>
-        <v-list>
-          <v-list-item
-            v-for="review in reviews"
-            :key="review.id"
-            class="mb-2"
-            two-line
-          >
-            <v-list-item-content>
-              <v-list-item-title class="font-weight-bold">
-                {{ review.CollegeName }} - ⭐ {{ review.Rating }}/5
-              </v-list-item-title>
-              <v-list-item-subtitle>
-                "{{ review.Comment }}" - {{ review.UserName }}
-              </v-list-item-subtitle>
-            </v-list-item-content>
-          </v-list-item>
-        </v-list>
+      <v-col class="mb-5" cols="12">
+        <v-btn color="secondary" large to="/my-reviews">
+          My Reviews
+          <v-icon right>mdi-account-circle</v-icon>
+        </v-btn>
       </v-col>
     </v-row>
   </v-container>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { collection, getDocs } from 'firebase/firestore'
-import { db } from '../firebase'
-
-const reviews = ref([])
-
-const loadReviews = async () => {
-  const snapshot = await getDocs(collection(db, 'ratings'))
-  reviews.value = snapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data()
-  }))
-}
-
-onMounted(() => {
-  loadReviews()
-})
 </script>

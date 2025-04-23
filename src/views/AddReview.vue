@@ -10,23 +10,32 @@
             <v-select
               v-model="review.subject"
               :items="subjects"
-              item-text="name"
-              item-value="name"
-              label="Select a Subject"
-              required
+              label="Select a Subject (Optional)"
             ></v-select>
           </v-col>
 
-          <!-- Rating Input -->
+          <!-- Rating Input (Radial Selector) -->
           <v-col cols="12">
-            <v-rating
+            <v-radio-group
               v-model="review.rating"
-              color="amber"
-              size="36"
-              hover
-              :max="10"
+              row
+              label="Rating (1-10)"
               required
-            ></v-rating>
+            >
+              <v-radio
+                v-for="n in 10"
+                :key="n"
+                :label="n"
+                :value="n"
+                :color="review.rating === n ? 'primary' : 'grey'"
+              ></v-radio>
+            </v-radio-group>
+            <p v-if="review.rating" class="text-caption text-muted">
+              You selected a rating of {{ review.rating }}.
+            </p>
+            <p v-else class="text-caption text-muted">
+              Please select a rating.
+            </p>
           </v-col>
 
           <!-- Text Review -->
@@ -45,6 +54,12 @@
               v-model="review.anonymous"
               label="Post anonymously"
             ></v-checkbox>
+            <p v-if="review.anonymous" class="text-caption text-muted">
+              Your review will be posted anonymously.
+            </p>
+            <p v-else class="text-caption text-muted">
+              Your name will be displayed with your review.
+            </p>
           </v-col>
         </v-row>
       </v-form>
@@ -65,6 +80,7 @@ import {
   addDoc,
   doc,
   getDocs,
+  getDoc,
   updateDoc
 } from 'firebase/firestore';
 
@@ -80,7 +96,7 @@ export default {
     return {
       subjects: [], // List of subjects offered by the college
       review: {
-        subject: '', // Selected subject
+        subject: '', // Selected subject (optional)
         rating: 0,
         comment: '',
         anonymous: false,
@@ -98,43 +114,59 @@ export default {
       try {
         const subjectsRef = collection(db, `colleges/${this.collegeId}/subjects`);
         const querySnapshot = await getDocs(subjectsRef);
-        this.subjects = querySnapshot.docs.map(doc => ({
-          name: doc.data().name // Only include the name for display
-        }));
+        this.subjects = querySnapshot.docs.map(doc => doc.data().name); // Extract only the name
       } catch (error) {
         console.error('Error fetching subjects:', error);
       }
-    },
-    async submitReview() {
-      if (!this.review.subject) {
-        alert('Please select a subject.');
-        return;
+  },
+  async fetchUserName(userId) {
+    try {
+      const userDoc = await getDoc(doc(db, 'users', userId)); // Assuming user data is stored in a 'users' collection
+      if (userDoc.exists()) {
+        return userDoc.data().name || 'No Name Provided'; // Return the name or a fallback
+      } else {
+        console.error('User document does not exist.');
+        return 'No Name Provided';
       }
+    } catch (error) {
+      console.error('Error fetching user name:', error);
+      return 'No Name Provided';
+    }
+},
+async submitReview() {
+  console.log('Current User:', auth.currentUser); // Log the current user object
 
-      if (this.review.rating === 0) {
-        alert('Please provide a rating.');
-        return;
+  if (this.review.rating === 0) {
+    alert('Please provide a rating.');
+    return;
+  }
+
+  try {
+    let userName = 'Anonymous';
+
+    if (!this.review.anonymous) {
+      // Fetch the user's name from Firestore
+      userName = await this.fetchUserName(auth.currentUser?.uid);
+    }
+
+    console.log('Resolved userName:', userName); // Log the resolved userName
+
+    // Add review to the reviews subcollection under the specific college
+    const reviewRef = await addDoc(
+      collection(db, `colleges/${this.collegeId}/reviews`),
+      {
+        ...this.review,
+        userName // Include the correct userName
       }
+    );
 
-      try {
-        // Add review to the reviews subcollection under the specific college
-        const reviewRef = await addDoc(
-          collection(db, `colleges/${this.collegeId}/reviews`),
-          {
-            ...this.review
-          }
-        );
+    console.log('Review added with ID:', reviewRef.id);
 
-        console.log('Review added with ID:', reviewRef.id);
-
-        // Update college's review count and average rating
-        await this.updateCollegeStats();
-
-        this.$emit('review-added');
-      } catch (error) {
-        console.error('Error adding review:', error);
-      }
-    },
+    this.$emit('review-added');
+  } catch (error) {
+    console.error('Error adding review:', error);
+  }
+},
     async updateCollegeStats() {
       const reviewsRef = collection(db, `colleges/${this.collegeId}/reviews`);
       const querySnapshot = await getDocs(reviewsRef);

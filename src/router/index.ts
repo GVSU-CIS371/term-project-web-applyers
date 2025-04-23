@@ -5,6 +5,7 @@ import CollegeDetail from '../views/CollegeDetail.vue'
 import AddReview from '../views/AddReview.vue'
 import LoginView from '../views/LoginView.vue'
 import SignupView from '../views/SignupView.vue';
+import UserReviews from '../views/UserReviews.vue';
 
 const routes = [
   {
@@ -34,6 +35,11 @@ const routes = [
     component: AddReview,
     props: true,
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/my-reviews',
+    name: 'UserReviews',
+    component: UserReviews
   },
   { 
     path: '/signup', name: 'Signup', component: SignupView 
