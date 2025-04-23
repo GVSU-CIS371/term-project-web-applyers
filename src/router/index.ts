@@ -44,6 +44,10 @@ const routes = [
   { 
     path: '/signup', name: 'Signup', component: SignupView 
   },
+  {
+    path: '/:pathMatch(.*)*', // Catch-all route
+    redirect: '/' // Redirect to home page
+  }
 ]
 
 const router = createRouter({
